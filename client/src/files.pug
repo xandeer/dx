@@ -1,0 +1,4 @@
+ul
+  each meta in metas
+    li
+      a(href=`${meta.is_dir ? '#' : app.static}${meta.href}`)=meta.name
