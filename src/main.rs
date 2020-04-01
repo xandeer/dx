@@ -5,20 +5,13 @@ extern crate rocket;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
-extern crate rocket_cors;
 
 use std::{fs, io};
 use std::path::{Path, PathBuf};
 
-use rocket_contrib::json::{Json, JsonValue};
+use rocket_contrib::json::Json;
 use rocket_contrib::serve::StaticFiles;
 
-use rocket::http::Method;
-
-use rocket_cors::{
-    AllowedHeaders, AllowedOrigins, Error,
-    Cors, CorsOptions
-};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct FileMetadata {
@@ -26,6 +19,8 @@ struct FileMetadata {
     name: String,
     href: String,
 }
+
+const ROOT: &str = ".";
 
 fn main() {
     rocket().launch();
@@ -39,11 +34,11 @@ fn rocket() -> rocket::Rocket {
                 hello,
                 get_root_files,
                 get_files,
+                upload,
             ],
         )
         .mount("/", StaticFiles::from("./client/dist"))
         .mount("/static", StaticFiles::from(".").rank(3))
-        .attach(make_cors())
 }
 
 fn list_dir(path: &Path) -> Vec<FileMetadata> {
@@ -112,21 +107,14 @@ fn hello() -> &'static str {
     "Hello, world!"
 }
 
-fn make_cors() -> Cors {
-    let allowed_origins = AllowedOrigins::some_regex(&["^http://(.+):3000",]);
+use rocket::Data;
 
-    CorsOptions {
-        allowed_origins,
-        allowed_methods: vec![Method::Get, Method::Options]
-            .into_iter().map(From::from).collect(),
-        allowed_headers: AllowedHeaders::some(&[
-            "Authorization",
-            "Accept",
-            "Access-Control-Allow-Origin",
-        ]),
-        allow_credentials: true,
-        ..Default::default()
+#[post("/upload/<path..>", data = "<data>")]
+fn upload(path: PathBuf, data: Data) -> io::Result<String> {
+    let dest = Path::new(&ROOT).join("upload").join(path);
+    if let Some(parent) = dest.parent() {
+        fs::create_dir_all(parent)?;
     }
-    .to_cors()
-    .expect("error while building CORS")
+    data.stream_to_file(&dest)?;
+    Ok(format!("{}", dest.display()))
 }

@@ -8,21 +8,32 @@ addEventListener('load', () => {
   }
   list('')
 
-  addEventListener('hashchange', e => {
-    list(location.hash.slice(1))
+  addEventListener('hashchange', _ => {
+    list(getHash())
+  })
+
+  const $upload = document.querySelector('#upload')
+  $upload.addEventListener('change', _ => {
+    upload($upload.files[0])
   })
 })
 
+function upload(file) {
+  fetch(`${app.domain}/api/upload/${getHash()}/${file.name}`, {
+    method: 'POST',
+    body: file
+  }).then(_ => console.log(`File ${file.name} uploaded successfully.`))
+    .catch(error => console.log(error))
+}
+
+function getHash() {
+  return location.hash.slice(1)
+}
+
 function list(path) {
-  fetch(`${app.domain}/api/files/${path}`, {
-    headers: {
-      'Access-Control-Allow-Origin': app.domain
-    }
-  })
-    .then((response) => {
-      return response.json()
-    })
-    .then((data) => {
-      document.querySelector("main").innerHTML = template({ metas: data })
-    })
+  fetch(`${app.domain}/api/files/${path}`).then(response =>
+    response.json()
+  ).then(data =>
+    document.querySelector('#files').innerHTML = template({ metas: data })
+  ).catch(error => console.log(error))
 }
