@@ -1,7 +1,7 @@
 import template from './files.pug'
 
 addEventListener('load', () => {
-  const domain = `http://${location.hostname}:8000`
+  const domain = location.origin
   window.app = {
     domain,
     static: domain + '/static/',
@@ -22,7 +22,10 @@ function upload(file) {
   fetch(`${app.domain}/api/upload/${getHash()}/${file.name}`, {
     method: 'POST',
     body: file
-  }).then(_ => console.log(`File ${file.name} uploaded successfully.`))
+  }).then(_ => {
+    list(getHash())
+    console.log(`File ${file.name} uploaded successfully.`)
+  })
     .catch(error => console.log(error))
 }
 
